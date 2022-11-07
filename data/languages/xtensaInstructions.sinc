@@ -304,12 +304,6 @@ macro extract_bit(val, bit, result) {
 # CALL0 - Non-windowed Call, pg. 297.
 :call0 srel_6.23_sb2 is srel_6.23_sb2 & u2_4.5 = 0 & op0 = 0b0101 {
     #local dst = srel_6.23_sb2;
-    i2 = a2;
-    i3 = a3;
-    i4 = a4;
-    i5 = a5;
-    i6 = a6;
-    i7 = a7;     
     a0 = inst_start + 3;
     call srel_6.23_sb2;
 }
@@ -317,12 +311,6 @@ macro extract_bit(val, bit, result) {
 # CALLX0 - Non-windowed Call Register, pg. 304.
 :callx0 as is op2 = 0 & op1 = 0 & ar = 0 & as & u2_6.7 = 0b11 & u2_4.5 = 0 & op0 = 0 {
     local dst = as;
-    i2 = a2;
-    i3 = a3;
-    i4 = a4;
-    i5 = a5;
-    i6 = a6;
-    i7 = a7;      
     a0 = inst_start + 3;
     call [dst];
 }
@@ -971,7 +959,6 @@ macro loopSetup(as, end, doit) {
 # RET.N - Narrow Non-Windowed Return, pg. 479.
 :ret.n is n_ar = 0b1111 & n_as = 0 & n_at = 0 & n_op0 = 0b1101 {
     return [a0];
-    o2=a2;
 }
 
 # RFDD - Return from Debug and Dispatch, pg. 484.

@@ -34,8 +34,6 @@ define register offset=0x3d0 size=4 [ MISC0 MISC1 MISC2 MISC3 ];
 # Address registers (AR).
 define register offset=0x8000 size=4 [
     a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15
-    i2 i3 i4 i5 i6 i7
-    o2 o3 o4 o5 o6 o7
 ];
 
 # Floating Point registers (FR + FCR (control) + FSR (status)).
