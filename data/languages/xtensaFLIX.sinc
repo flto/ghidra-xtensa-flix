@@ -1,0 +1,487 @@
+macro select(dest, cond, x, y) { dest = zext(cond) * x + (1 - zext(cond)) * y; }
+
+# Slot 0 instructions (TODO: ssa8l, ssa8b, ssai, nsa, nsau, src, srl, sra, mul16u, mul16s, clamps)
+
+# XXX add 1 to mask for disasm
+slot0:"extui" s0_at, Ws0_ar, s0_sh, s0_mask is s0_op = 0 & s0_op2lh = 0b010 & s0_sh & s0_mask & Ws0_ar & s0_at {
+    local shifted:4 = s0_at >> s0_sh;
+    local mask:4 = (1:4 << (s0_mask + 1))-1;
+    Ws0_ar = shifted & mask;
+}
+slot0:"nop" is s0_op = 0 & s0_unk = 0b00000000001000001111 {
+}
+slot0:"and" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b00010000 & Ws0_ar & s0_as & s0_at {
+    Ws0_ar = s0_as & s0_at;
+}
+slot0:"or" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b00100000 & Ws0_ar & s0_as & s0_at {
+    Ws0_ar = s0_as | s0_at;
+}
+slot0:"xor" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b00110000 & Ws0_ar & s0_as & s0_at {
+    Ws0_ar = s0_as ^ s0_at;
+}
+slot0:"ssr" s0_as is s0_op = 0 & s0_op2 = 0b01000000 & s0_ar = 0 & s0_as & s0_at = 0 {
+    SAR = (s0_as & 0x1f);
+}
+slot0:"ssl" s0_as is s0_op = 0 & s0_op2 = 0b01000000 & s0_ar = 1 & s0_as & s0_at = 0 {
+    SAR = 32 - (s0_as & 0x1f);
+}
+slot0:"neg" Ws0_ar, s0_at is s0_op = 0 & s0_op2 = 0b01100000 & Ws0_ar & s0_as = 0 & s0_at {
+    Ws0_ar = -s0_at;
+}
+slot0:"abs" Ws0_ar, s0_at is s0_op = 0 & s0_op2 = 0b01100000 & Ws0_ar & s0_as = 1 & s0_at {
+    select(Ws0_ar, s0_at s> 0, s0_at, -s0_at);
+}
+slot0:"add" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b10000000 & Ws0_ar & s0_as & s0_at {
+    Ws0_ar = s0_as + s0_at;
+}
+slot0:"addx2" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b10010000 & Ws0_ar & s0_as & s0_at {
+    Ws0_ar = (s0_as << 1) + s0_at;
+}
+slot0:"addx4" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b10100000 & Ws0_ar & s0_as & s0_at {
+    Ws0_ar = (s0_as << 2) + s0_at;
+}
+slot0:"addx8" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b10110000 & Ws0_ar & s0_as & s0_at {
+    Ws0_ar = (s0_as << 3) + s0_at;
+}
+slot0:"sub" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b11000000 & Ws0_ar & s0_as & s0_at {
+    Ws0_ar = s0_as - s0_at;
+}
+slot0:"subx2" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b11010000 & Ws0_ar & s0_as & s0_at {
+    Ws0_ar = (s0_as << 1) - s0_at;
+}
+slot0:"subx4" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b11100000 & Ws0_ar & s0_as & s0_at {
+    Ws0_ar = (s0_as << 2) - s0_at;
+}
+slot0:"subx8" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b11110000 & Ws0_ar & s0_as & s0_at {
+    Ws0_ar = (s0_as << 3) - s0_at;
+}
+slot0:"srai" Ws0_ar, s0_at, s0_srai is s0_op = 0 & s0_op2h = 0b001 & s0_op2l = 0b0001 & Ws0_ar & s0_at & s0_srai {
+    Ws0_ar = s0_at s>> s0_srai;
+}
+slot0:"slli" Ws0_ar, s0_as, s0_slli is s0_op = 0 & s0_op2h = 0b000 & s0_op2l = 0b0001 & Ws0_ar & s0_as & s0_slli {
+    Ws0_ar = s0_as << s0_slli;
+}
+slot0:"srli" Ws0_ar, s0_at, s0_sh_lo is s0_op = 0 & s0_op2 = 0b01000001 & Ws0_ar & s0_sh_lo & s0_at {
+    Ws0_ar = s0_at >> s0_sh_lo;
+}
+slot0:"sll" Ws0_ar, s0_as is s0_op = 0 & s0_op2 = 0b10100001 & Ws0_ar & s0_as & s0_at = 0 {
+    local sa = 32 - SAR;
+    Ws0_ar = s0_as << sa;
+}
+slot0:"mull" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b10000010 & Ws0_ar & s0_as & s0_at {
+    Ws0_ar = s0_as * s0_at;
+}
+slot0:"sext" Ws0_ar, s0_as, s0_at_iplus7 is s0_op = 0 & s0_op2 = 0b00100011 & Ws0_ar & s0_as & s0_at_iplus7 {
+    local shift:1 = 31:1 - s0_at_iplus7;
+    local tmp:4 = s0_as << shift;
+    Ws0_ar = tmp s>> shift;
+}
+slot0:"min" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b01000011 & Ws0_ar & s0_as & s0_at {
+    select(Ws0_ar, s0_as s< s0_at, s0_as, s0_at);
+}
+slot0:"max" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b01010011 & Ws0_ar & s0_as & s0_at {
+    select(Ws0_ar, s0_as s> s0_at, s0_as, s0_at);
+}
+slot0:"minu" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b01100011 & Ws0_ar & s0_as & s0_at {
+    select(Ws0_ar, s0_as < s0_at, s0_as, s0_at);
+}
+slot0:"maxu" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b01110011 & Ws0_ar & s0_as & s0_at {
+    select(Ws0_ar, s0_as > s0_at, s0_as, s0_at);
+}
+# XXX conditional movs read destination register, but this should be OK
+slot0:"moveqz" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b10000011 & Ws0_ar & s0_as & s0_at {
+    select(Ws0_ar, s0_at == 0, s0_as, Ws0_ar);
+}
+slot0:"movnez" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b10010011 & Ws0_ar & s0_as & s0_at {
+    select(Ws0_ar, s0_at != 0, s0_as, Ws0_ar);
+}
+slot0:"movltz" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b10100011 & Ws0_ar & s0_as & s0_at {
+    select(Ws0_ar, s0_at s< 0, s0_as, Ws0_ar);
+}
+slot0:"movgez" Ws0_ar, s0_as, s0_at is s0_op = 0 & s0_op2 = 0b10110011 & Ws0_ar & s0_as & s0_at {
+    select(Ws0_ar, s0_at s>= 0, s0_as, Ws0_ar);
+}
+slot0:"l8ui" Ws0_at, s0_as, s0_imm8_shift0 is s0_op = 0b0010 & s0_op1 = 0 & Ws0_at & s0_as & s0_imm8_shift0 {
+    local addr:4 = s0_as + s0_imm8_shift0;
+    Ws0_at = zext(*:1 addr);
+}
+slot0:"l16ui" Ws0_at, s0_as, s0_imm8_shift1 is s0_op = 0b0010 & s0_op1 = 1 & Ws0_at & s0_as & s0_imm8_shift1 {
+    local addr:4 = s0_as + s0_imm8_shift1;
+    Ws0_at = zext(*:2 addr);
+}
+slot0:"l16si" Ws0_at, s0_as, s0_imm8_shift1 is s0_op = 0b0010 & s0_op1 = 9 & Ws0_at & s0_as & s0_imm8_shift1 {
+    local addr:4 = s0_as + s0_imm8_shift1;
+    Ws0_at = sext(*:2 addr);
+}
+slot0:"l32i" Ws0_at, s0_as, s0_imm8_shift2 is s0_op = 0b0010 & s0_op1 = 2 & Ws0_at & s0_as & s0_imm8_shift2 {
+    local addr:4 = s0_as + s0_imm8_shift2;
+    Ws0_at = *:4 addr;
+}
+slot0:"s8i" s0_at, s0_as, s0_imm8_shift0 is s0_op = 0b0010 & s0_op1 = 4 & s0_at & s0_as & s0_imm8_shift0 {
+    local addr:4 = s0_as + s0_imm8_shift0;
+    *:1 addr = s0_at;
+}
+slot0:"s16i" s0_at, s0_as, s0_imm8_shift1 is s0_op = 0b0010 & s0_op1 = 5 & s0_at & s0_as & s0_imm8_shift1 {
+    local addr:4 = s0_as + s0_imm8_shift1;
+    *:2 addr = s0_at;
+}
+slot0:"s32i" s0_at, s0_as, s0_imm8_shift2 is s0_op = 0b0010 & s0_op1 = 6 & s0_at & s0_as & s0_imm8_shift2 {
+    local addr:4 = s0_as + s0_imm8_shift2;
+    *:4 addr = s0_at;
+}
+slot0:"movi" Ws0_at, s0_imm12 is s0_op = 0b0010 & s0_op1 = 10 & s0_imm12 & Ws0_at {
+    Ws0_at = s0_imm12;
+}
+slot0:"addi" Ws0_at, s0_as, s0_imm8 is s0_op = 0b0010 & s0_op1 = 12 & s0_imm8 & s0_as & Ws0_at {
+    Ws0_at = s0_as + sext(s0_imm8:1);
+}
+# XXX shift imm for disasm
+slot0:"addmi" Ws0_at, s0_as, s0_imm8 is s0_op = 0b0010 & s0_op1 = 13 & s0_imm8 & s0_as & Ws0_at {
+    Ws0_at = s0_as + (sext(s0_imm8:1) << 8);
+}
+slot0:"l32r" Ws0_at, srel_s0_imm16 is s0_op = 0b0001 & srel_s0_imm16 & Ws0_at {
+    Ws0_at = srel_s0_imm16;
+}
+slot0:"mov.n" s0_as, Ws0_at is s0_op = 0 & s0_op2 = 0b00000110 & s0_ar = 0 & s0_as & Ws0_at {
+    Ws0_at = s0_as;
+}
+
+# New Slot 0 instructions (not implemented in binutils):
+
+slot0:"call0" srel_s0_imm18 is s0_op = 0 & s0_op0_op = 0b10 & srel_s0_imm18 {
+    #local dst = srel_s0_imm18;
+    a0 = inst_start + 8;
+    call srel_s0_imm18;
+}
+slot0:"callx0" s0_as is s0_op = 0 & s0_op2 = 0b01010000 & s0_ar = 2 & s0_as & s0_at = 0 {
+    local dst = s0_as;
+    a0 = inst_start + 8;
+    call [dst];
+}
+slot0:"ret" is s0_op = 0 & s0_unk = 0b00000000001000001110 {
+    return [a0];
+}
+
+# looks like loop instructions, but not sure which is which one
+slot0:"loop" s0_as, urel_s0_imm8 is s0_op = 0b0010 & s0_op1 = 0b1110 & s0_at = 0 & s0_as & urel_s0_imm8
+[loopEnd=1; globalset(urel_s0_imm8, loopEnd);] {
+    loopSetup(s0_as, urel_s0_imm8, 1:1);
+}
+slot0:"loopnez" s0_as, urel_s0_imm8 is s0_op = 0b0010 & s0_op1 = 0b1110 & s0_at = 1 & s0_as & urel_s0_imm8
+[loopEnd=1; globalset(urel_s0_imm8, loopEnd);] {
+    loopSetup(s0_as, urel_s0_imm8, s0_as != 0);
+}
+slot0:"loopgtz" s0_as, urel_s0_imm8 is s0_op = 0b0010 & s0_op1 = 0b1110 & s0_at = 2 & s0_as & urel_s0_imm8
+[loopEnd=1; globalset(urel_s0_imm8, loopEnd);] {
+    loopSetup(s0_as, urel_s0_imm8, s0_as s> 0);
+}
+
+# Slot 1 (TODO: nop, sra, srl)
+
+# XXX add 1 to mask for disasm
+slot1:"extui" s1_at, Ws1_ar, s1_sh, s1_mask is s1_op_msb3 = 0b010 & s1_sh & s1_mask & Ws1_ar & s1_at {
+    local shifted:4 = s1_at >> s1_sh;
+    local mask:4 = (1:4 << (s1_mask + 1))-1;
+    Ws1_ar = shifted & mask;
+}
+slot1:"movi" Ws1_at, s1_imm12 is s1_op = 0b1000 & s1_imm12 & Ws1_at {
+    Ws1_at = s1_imm12;
+}
+slot1:"addi" Ws1_at, s1_as, s1_imm8 is s1_op = 0b0110 & s1_imm8 & Ws1_at & s1_as {
+    Ws1_at = s1_as + sext(s1_imm8:1);
+}
+# XXX shift imm for disasm
+slot1:"addmi" Ws1_at, s1_as, s1_imm8 is s1_op = 0b0111 & s1_imm8 & Ws1_at & s1_as {
+    Ws1_at = s1_as + (sext(s1_imm8:1) << 8);
+}
+slot1:"xor" Ws1_ar, s1_as, s1_at is s1_opX = 0b10110000 & Ws1_ar & s1_as & s1_at {
+    Ws1_ar = s1_as ^ s1_at;
+}
+slot1:"slli" Ws1_ar, s1_as, s1_slli is s1_opY = 0b1001000 & Ws1_ar & s1_as & s1_slli {
+    Ws1_ar = s1_as << s1_slli;
+}
+slot1:"srai" Ws1_ar, s1_at, s1_srai is s1_opY = 0b1010000 & Ws1_ar & s1_srai & s1_at {
+    Ws1_ar = s1_at s>> s1_srai;
+}
+slot1:"sll" Ws1_ar, s1_as is s1_opX = 0b10100110 & Ws1_ar & s1_as & s1_at = 0 {
+    local sa = 32 - SAR;
+    Ws1_ar = s1_as << sa;
+}
+slot1:"add" Ws1_ar, s1_as, s1_at is s1_opX = 0b10010010 & Ws1_ar & s1_as & s1_at {
+    Ws1_ar = s1_as + s1_at;
+}
+slot1:"addx8" Ws1_ar, s1_as, s1_at is s1_opX = 0b10010011 & Ws1_ar & s1_as & s1_at {
+    Ws1_ar = (s1_as << 3) + s1_at;
+}
+slot1:"addx2" Ws1_ar, s1_as, s1_at is s1_opX = 0b10010100 & Ws1_ar & s1_as & s1_at {
+    Ws1_ar = (s1_as << 1) + s1_at;
+}
+slot1:"and" Ws1_ar, s1_as, s1_at is s1_opX = 0b10010101 & Ws1_ar & s1_as & s1_at {
+    Ws1_ar = s1_as & s1_at;
+}
+slot1:"moveqz" Ws1_ar, s1_as, s1_at is s1_opX = 0b10010110 & Ws1_ar & s1_as & s1_at {
+    select(Ws1_ar, s1_at == 0, s1_as, Ws1_ar);
+}
+slot1:"movgez" Ws1_ar, s1_as, s1_at is s1_opX = 0b10010111 & Ws1_ar & s1_as & s1_at {
+    select(Ws1_ar, s1_at s>= 0, s1_as, Ws1_ar);
+}
+slot1:"addx4" Ws1_ar, s1_as, s1_at is s1_opX = 0b10011000 & Ws1_ar & s1_as & s1_at {
+    Ws1_ar = (s1_as << 2) + s1_at;
+}
+slot1:"movltz" Ws1_ar, s1_as, s1_at is s1_opX = 0b10011001 & Ws1_ar & s1_as & s1_at {
+    select(Ws1_ar, s1_at s< 0, s1_as, Ws1_ar);
+}
+slot1:"movnez" Ws1_ar, s1_as, s1_at is s1_opX = 0b10011010 & Ws1_ar & s1_as & s1_at {
+    select(Ws1_ar, s1_at != 0, s1_as, Ws1_ar);
+}
+slot1:"mul16u" Ws1_ar, s1_as, s1_at is s1_opX = 0b10011011 & Ws1_ar & s1_as & s1_at {
+    Ws1_ar = zext(s1_as:2) * zext(s1_at:2);
+}
+slot1:"mul16s" Ws1_ar, s1_as, s1_at is s1_opX = 0b10011100 & Ws1_ar & s1_as & s1_at {
+    Ws1_ar = sext(s1_as:2) * sext(s1_at:2);
+}
+slot1:"mull" Ws1_ar, s1_as, s1_at is s1_opX = 0b10011101 & Ws1_ar & s1_as & s1_at {
+    Ws1_ar = s1_as * s1_at;
+}
+slot1:"or" Ws1_ar, s1_as, s1_at is s1_opX = 0b10011110 & Ws1_ar & s1_as & s1_at {
+    Ws1_ar = s1_as | s1_at;
+}
+slot1:"sext" Ws1_ar, s1_as, s1_at_iplus7 is s1_opX = 0b10011111 & Ws1_ar & s1_as & s1_at_iplus7 {
+    local shift:1 = 31:1 - s1_at_iplus7;
+    local tmp:4 = s1_as << shift;
+    Ws1_ar = tmp s>> shift;
+}
+slot1:"src" Ws1_ar, s1_as, s1_at is s1_opX = 0b10100010 & Ws1_ar & s1_as & s1_at {
+    local s64:8 = zext(s1_as);
+    local t64:8 = zext(s1_at);
+    local combined:8 = (s64 << 32) | t64;
+    local shifted:8 = combined >> SAR;
+    Ws1_ar = shifted:4;
+}
+slot1:"srli" Ws1_ar, s1_at, s1_as_imm is s1_opX = 0b10100100 & Ws1_ar & s1_as_imm & s1_at {
+    Ws1_ar = s1_at >> s1_as_imm;
+}
+slot1:"mov.n" Ws1_at, s1_as is s1_opX = 0b10100011 & s1_ar = 0 & s1_as & Ws1_at {
+    Ws1_at = s1_as;
+}
+# XXX broken if slot0 isn't nop
+slot1:"jx" s1_as is s1_opX = 0b10100011 & s1_ar = 1 & s1_as & s1_at = 0 {
+    goto [s1_as];
+}
+slot1:"ssl" s1_as is s1_opX = 0b10100011 & s1_ar = 2 & s1_as & s1_at = 0 {
+    SAR = 32 - (s1_as & 0x1f);
+}
+slot1:"neg" Ws1_ar, s1_at is s1_opX = 0b10100101 & Ws1_ar & s1_as = 0 & s1_at {
+    Ws1_ar = -s1_at;
+}
+slot1:"sub" Ws1_ar, s1_as, s1_at is s1_opX = 0b10101000 & Ws1_ar & s1_as & s1_at {
+    Ws1_ar = s1_as - s1_at;
+}
+# XXX broken if slot0 isn't nop
+slot1:"j" srel_s1_imm18 is s1_oph = 0b11 & srel_s1_imm18 {
+    goto srel_s1_imm18;
+}
+
+# Slot 2
+
+slot2:"add" Ws2_ar, s2_as, s2_at is s2_op = 0b0010 & Ws2_ar & s2_as & s2_at {
+    Ws2_ar = s2_as + s2_at;
+}
+slot2:"addx2" Ws2_ar, s2_as, s2_at is s2_op = 0b0100 & Ws2_ar & s2_as & s2_at {
+    Ws2_ar = (s2_as << 1) + s2_at;
+}
+slot2:"and" Ws2_ar, s2_as, s2_at is s2_op = 0b0110 & Ws2_ar & s2_as & s2_at {
+    Ws2_ar = s2_as & s2_at;
+}
+slot2:"sext" Ws2_ar, s2_as, s2_at_iplus7 is s2_op = 0b1000 & Ws2_ar & s2_as & s2_at_iplus7 {
+    local shift:1 = 31:1 - s2_at_iplus7;
+    local tmp:4 = s2_as << shift;
+    Ws2_ar = tmp s>> shift;
+}
+slot2:"sub" Ws2_ar, s2_as, s2_at is s2_op = 0b1010 & Ws2_ar & s2_as & s2_at {
+    Ws2_ar = s2_as - s2_at;
+}
+slot2:"addi.n" Ws2_ar, s2_as, s2_imm4_nozero is s2_op = 0b0011 & Ws2_ar & s2_as & s2_imm4_nozero {
+    Ws2_ar = s2_as + s2_imm4_nozero;
+}
+slot2:"addx4" Ws2_ar, s2_as, s2_at is s2_op = 0b0101 & Ws2_ar & s2_as & s2_at {
+    Ws2_ar = (s2_as << 2) + s2_at;
+}
+slot2:"or" Ws2_ar, s2_as, s2_at is s2_op = 0b0111 & Ws2_ar & s2_as & s2_at {
+    Ws2_ar = s2_as | s2_at;
+}
+slot2:"srli" Ws2_ar, s2_at, s2_as_imm is s2_op = 0b1001 & Ws2_ar & s2_as_imm & s2_at {
+    Ws2_ar = s2_at >> s2_as_imm;
+}
+slot2:"xor" Ws2_ar, s2_as, s2_at is s2_op = 0b1011 & Ws2_ar & s2_as & s2_at {
+    Ws2_ar = s2_as ^ s2_at;
+}
+slot2:"movi.n" Ws2_as, s2_imm7 is s2_op = 0b1100 & s2_bit7 = 0b0 & s2_imm7 & Ws2_as {
+    Ws2_as = s2_imm7; # XXX asym
+}
+slot2:"mov.n" Ws2_at, s2_as is s2_op = 0b1100 & s2_ar = 0b1000 & Ws2_at & s2_as {
+    Ws2_at = s2_as;
+}
+slot2:"nop" is s2_op = 0b1100 & s2_as = 0 & s2_ar = 0b1001 & s2_at = 0 {
+}
+slot2:"abs" Ws2_ar, s2_at is s2_op = 0b1101 & Ws2_ar & s2_as = 0 & s2_at {
+    select(Ws2_ar, s2_at s> 0, s2_at, -s2_at);
+}
+slot2:"neg" Ws2_ar, s2_at is s2_op = 0b1101 & Ws2_ar & s2_as = 1 & s2_at {
+    Ws2_ar = -s2_at;
+}
+slot2:"sra" Ws2_ar, s2_at is s2_op = 0b1101 & Ws2_ar & s2_as = 2 & s2_at {
+    Ws2_ar = s2_at s>> SAR;
+}
+slot2:"srl" Ws2_ar, s2_at is s2_op = 0b1101 & Ws2_ar & s2_as = 4 & s2_at {
+    Ws2_ar = s2_at >> SAR;
+}
+slot2:"srai" Ws2_ar, s2_at, s2_srai is s2_oph = 0b111 & Ws2_ar & s2_srai & s2_at {
+    Ws2_ar = s2_at s>> s2_srai;
+}
+
+# Slot 3
+
+slot3:"bbci.w18" s3_as, s3_b5const, srel_s3_imm18 is s3_oph = 0b00001 & s3_as & s3_b5const & srel_s3_imm18 {
+    if ((s3_as & (1 << s3_b5const)) == 0)
+        goto srel_s3_imm18;
+}
+slot3:"bbsi.w18" s3_as, s3_b5const, srel_s3_imm18 is s3_oph = 0b00010 & s3_as & s3_b5const & srel_s3_imm18 {
+    if ((s3_as & (1 << s3_b5const)) != 0)
+        goto srel_s3_imm18;
+}
+slot3:"ball.w18" s3_as, s3_at, srel_s3_imm18 is s3_op = 6 & s3_as & s3_at & srel_s3_imm18 {
+   if ((~s3_as & s3_at) == 0)
+      goto srel_s3_imm18;
+}
+slot3:"bany.w18" s3_as, s3_at, srel_s3_imm18 is s3_op = 8 & s3_as & s3_at & srel_s3_imm18 {
+   if ((s3_as & s3_at) != 0)
+      goto srel_s3_imm18;
+}
+slot3:"bbc.w18" s3_as, s3_at, srel_s3_imm18 is s3_op = 10 & s3_as & s3_at & srel_s3_imm18 {
+   if ((s3_as & (1 << s3_at[0,5])) == 0)
+      goto srel_s3_imm18;
+}
+slot3:"bbs.w18" s3_as, s3_at, srel_s3_imm18 is s3_op = 12 & s3_as & s3_at & srel_s3_imm18 {
+   if ((s3_as & (1 << s3_at[0,5])) != 0)
+      goto srel_s3_imm18;
+}
+slot3:"beq.w18" s3_as, s3_at, srel_s3_imm18 is s3_op = 14 & s3_as & s3_at & srel_s3_imm18 {
+   if (s3_as == s3_at)
+      goto srel_s3_imm18;
+}
+slot3:"beqi.w18" s3_as, s3_r_b4const, srel_s3_imm18 is s3_op = 16 & s3_as & s3_r_b4const & srel_s3_imm18 {
+   if (s3_as == s3_r_b4const)
+      goto srel_s3_imm18;
+}
+slot3:"bge.w18" s3_as, s3_at, srel_s3_imm18 is s3_op = 18 & s3_as & s3_at & srel_s3_imm18 {
+   if (s3_as s>= s3_at)
+      goto srel_s3_imm18;
+}
+slot3:"bgei.w18" s3_as, s3_r_b4const, srel_s3_imm18 is s3_op = 20 & s3_as & s3_r_b4const & srel_s3_imm18 {
+   if (s3_as s>= s3_r_b4const)
+      goto srel_s3_imm18;
+}
+slot3:"bgeu.w18" s3_as, s3_at, srel_s3_imm18 is s3_op = 22 & s3_as & s3_at & srel_s3_imm18 {
+   if (s3_as >= s3_at)
+      goto srel_s3_imm18;
+}
+slot3:"bgeui.w18" s3_as, s3_r_b4constu, srel_s3_imm18 is s3_op = 24 & s3_as & s3_r_b4constu & srel_s3_imm18 {
+   if (s3_as >= s3_r_b4constu)
+      goto srel_s3_imm18;
+}
+slot3:"blt.w18" s3_as, s3_at, srel_s3_imm18 is s3_op = 26 & s3_as & s3_at & srel_s3_imm18 {
+   if (s3_as s< s3_at)
+      goto srel_s3_imm18;
+}
+slot3:"blti.w18" s3_as, s3_r_b4const, srel_s3_imm18 is s3_op = 28 & s3_as & s3_r_b4const & srel_s3_imm18 {
+   if (s3_as s< s3_r_b4const)
+      goto srel_s3_imm18;
+}
+slot3:"bltu.w18" s3_as, s3_at, srel_s3_imm18 is s3_op = 30 & s3_as & s3_at & srel_s3_imm18 {
+   if (s3_as < s3_at)
+      goto srel_s3_imm18;
+}
+slot3:"bltui.w18" s3_as, s3_r_b4constu, srel_s3_imm18 is s3_op = 32 & s3_as & s3_r_b4constu & srel_s3_imm18 {
+   if (s3_as < s3_r_b4constu)
+      goto srel_s3_imm18;
+}
+slot3:"bnall.w18" s3_as, s3_at, srel_s3_imm18 is s3_op = 34 & s3_as & s3_at & srel_s3_imm18 {
+   if ((~s3_as & s3_at) != 0)
+      goto srel_s3_imm18;
+}
+slot3:"bne.w18" s3_as, s3_at, srel_s3_imm18 is s3_op = 36 & s3_as & s3_at & srel_s3_imm18 {
+   if (s3_as != s3_at)
+      goto srel_s3_imm18;
+}
+slot3:"bnei.w18" s3_as, s3_r_b4const, srel_s3_imm18 is s3_op = 38 & s3_as & s3_r_b4const & srel_s3_imm18 {
+   if (s3_as != s3_r_b4const)
+      goto srel_s3_imm18;
+}
+slot3:"bnone.w18" s3_as, s3_at, srel_s3_imm18 is s3_op = 40 & s3_as & s3_at & srel_s3_imm18 {
+   if ((s3_as & s3_at) == 0)
+      goto srel_s3_imm18;
+}
+slot3:"beqz.w18" s3_as, srel_s3_imm18 is s3_op = 42 & s3_as & s3_at = 0 & srel_s3_imm18 {
+   if (s3_as == 0)
+      goto srel_s3_imm18;
+}
+slot3:"bgez.w18" s3_as, srel_s3_imm18 is s3_op = 44 & s3_as & s3_at = 0 & srel_s3_imm18 {
+   if (s3_as s>= 0)
+      goto srel_s3_imm18;
+}
+slot3:"bltz.w18" s3_as, srel_s3_imm18 is s3_op = 46 & s3_as & s3_at = 0 & srel_s3_imm18 {
+   if (s3_as s< 0)
+      goto srel_s3_imm18;
+}
+slot3:"bnez.w18" s3_as, srel_s3_imm18 is s3_op = 48 & s3_as & s3_at = 0 & srel_s3_imm18 {
+   if (s3_as != 0)
+      goto srel_s3_imm18;
+}
+
+# 3 slot FLIX
+:{ slot0; slot1; slot2 } is slot0 & slot1 & slot2 & flix_op0 = 0b1110 {
+    s0 = a0;
+    s1 = a1;
+    s2 = a2;
+    s3 = a3;
+    s4 = a4;
+    s5 = a5;
+    s6 = a6;
+    s7 = a7;
+    s8 = a8;
+    s9 = a9;
+    s10 = a10;
+    s11 = a11;
+    s12 = a12;
+    s13 = a13;
+    s14 = a14;
+    s15 = a15;
+
+    build slot1;
+    build slot2;
+    build slot0; # needs to be last because it may have control flow
+}
+# 2 slot FLIX
+:{ slot0; slot3 } is slot0 & slot3 & flix_op0 = 0b1111 {
+    s0 = a0;
+    s1 = a1;
+    s2 = a2;
+    s3 = a3;
+    s4 = a4;
+    s5 = a5;
+    s6 = a6;
+    s7 = a7;
+    s8 = a8;
+    s9 = a9;
+    s10 = a10;
+    s11 = a11;
+    s12 = a12;
+    s13 = a13;
+    s14 = a14;
+    s15 = a15;
+
+    # XXX slot0 should never have control flow in this case?
+    build slot0;
+    build slot3; # needs to be last because it may have control flow
+}

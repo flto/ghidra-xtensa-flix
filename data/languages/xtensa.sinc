@@ -59,6 +59,11 @@ define context contextreg
     loopEnd=(1,1) noflow
 ;
 
+# Address registers (AR) shadows for FLIX
+define register offset=0x9000 size=4 [
+    s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15
+];
+
 # Regular 24-bit instruction.
 define token insn(24)
     # Named opcode/register fields.
@@ -126,6 +131,236 @@ define token narrowinsn(16)
     n_u2_4.5    =  (4,5)
 
 ;
+
+# FLIX
+define token flixinsn(64)
+    s3_oph = (55, 63)
+    s3_b5const_hi = (54, 54)
+
+    s3_op = (54, 63)
+    s3_imm18 = (36, 53) signed
+    s3_at_imm = (28, 31)
+
+    s2_oph = (61, 63)
+    s2_srai_hi = (60, 60)
+
+    s2_op = (60, 63)
+    s2_as_imm = (56, 59)
+    s2_imm8 = (48, 55) signed
+
+    s2_bit7 = (55, 55)
+    s2_imm7 = (48, 54) signed
+
+    s2_imm4 = (48, 51)
+
+
+    s1_oph = (46, 47)
+    s1_imm18 = (28, 45) signed
+
+    s1_op = (44, 47)
+    s1_opX = (40, 47)
+    s1_opY = (41, 47)
+
+    s1_imm5_hi = (40, 40)
+
+    s1_imm8_hi = (40, 43) signed
+    s1_as_imm = (36, 39)
+    s1_imm8_lo = (32, 35)
+
+    s1_imm12 = (32, 43) signed
+
+    s1_op_msb3 = (45, 47)
+    s1_sh = (40, 44)
+    s1_mask = (36, 39)
+    s1_imm5_lo = (28, 31)
+
+    s0_op = (24, 27)
+
+    s0_op2 = (16, 23)
+    s0_op2h = (21, 23)
+    s0_op2l = (16, 19)
+
+    s0_mask = (20, 23)
+    s0_op2lh = (17, 19)
+    s0_sh_hi = (16, 16)
+
+    flix_bit20 = (20, 20)
+
+
+    s0_imm8 = (16, 23) signed
+    s0_op1 = (12, 15)
+    s0_sh_lo = (8, 11)
+    s0_imm12_hi = (8, 11) signed
+
+    s0_imm16 = (8, 23)
+
+    s0_unk = (4, 23)
+
+    s0_imm18_hi = (20, 23) signed
+    s0_op0_op = (18, 19)
+    s0_imm18_lo = (4, 17)
+
+    s0_imm5_hi = (20, 20)
+    s0_imm5_lo = (4, 7)
+
+    s3_as = (32, 35)
+    s3_at = (28, 31)
+
+    s2_as = (56, 59)
+    s2_ar = (52, 55)
+    s2_at = (48, 51)
+
+    s1_as = (36, 39)
+    s1_ar = (32, 35)
+    s1_at = (28, 31)
+
+    s0_ar = (12, 15)
+    s0_as = (8, 11)
+    s0_at = (4, 7)
+
+    Ws3_as = (32, 35)
+    Ws3_at = (28, 31)
+
+    Ws2_as = (56, 59)
+    Ws2_ar = (52, 55)
+    Ws2_at = (48, 51)
+
+    Ws1_as = (36, 39)
+    Ws1_ar = (32, 35)
+    Ws1_at = (28, 31)
+
+    Ws0_ar = (12, 15)
+    Ws0_as = (8, 11)
+    Ws0_at = (4, 7)
+
+    flix_op0   = (0, 3)
+;
+
+
+s0_at_iplus7: tmp is s0_imm5_lo [
+   tmp = s0_imm5_lo + 7;
+] { export *[const]:1 tmp; }
+
+s1_at_iplus7: tmp is s1_imm5_lo [
+   tmp = s1_imm5_lo + 7;
+] { export *[const]:1 tmp; }
+
+s2_at_iplus7: tmp is s2_imm4 [
+   tmp = s2_imm4 + 7;
+] { export *[const]:1 tmp; }
+
+s0_sh: tmp is s0_sh_hi & s0_sh_lo [
+   tmp = (s0_sh_hi << 4) | s0_sh_lo;
+] { export *[const]:1 tmp; }
+
+s0_imm12: tmp is s0_imm12_hi & s0_imm8 [
+   tmp = (s0_imm12_hi << 8) | (s0_imm8 & 0xff);
+] { export *[const]:4 tmp; }
+
+urel_s0_imm8: rel is s0_imm8 [
+    rel = inst_start + (s0_imm8 & 0xff) + 4;
+] { export *:4 rel; }
+
+srel_s0_imm16: rel is s0_imm16 [
+    rel = ((inst_start + 3) & ~3) + ((s0_imm16 | 0xffff0000) << 2);
+] { export *:4 rel; }
+
+srel_s0_imm18: rel is s0_imm18_lo & s0_imm18_hi [
+    rel = (inst_start & ~3) + ( s0_imm18_hi << 16 | s0_imm18_lo << 2 ) + 4;
+] { export *:4 rel; }
+
+s3_b5const: tmp is s3_at_imm & s3_b5const_hi [
+    tmp = s3_at_imm | s3_b5const_hi << 4;
+] { export *[const]:4 tmp; }
+
+# B4CONST(ar) (Branch Immediate) encodings, pg. 41 f.
+s3_r_b4const: tmp is s3_at = 0         [ tmp = 0xffffffff; ] { export *[const]:4 tmp; }
+s3_r_b4const: tmp is s3_at = 1         [ tmp = 0x1; ]        { export *[const]:4 tmp; }
+s3_r_b4const: tmp is s3_at = 2         [ tmp = 0x2; ]        { export *[const]:4 tmp; }
+s3_r_b4const: tmp is s3_at = 3         [ tmp = 0x3; ]        { export *[const]:4 tmp; }
+s3_r_b4const: tmp is s3_at = 4         [ tmp = 0x4; ]        { export *[const]:4 tmp; }
+s3_r_b4const: tmp is s3_at = 5         [ tmp = 0x5; ]        { export *[const]:4 tmp; }
+s3_r_b4const: tmp is s3_at = 6         [ tmp = 0x6; ]        { export *[const]:4 tmp; }
+s3_r_b4const: tmp is s3_at = 7         [ tmp = 0x7; ]        { export *[const]:4 tmp; }
+s3_r_b4const: tmp is s3_at = 8         [ tmp = 0x8; ]        { export *[const]:4 tmp; }
+s3_r_b4const: tmp is s3_at = 9         [ tmp = 0xa; ]        { export *[const]:4 tmp; }
+s3_r_b4const: tmp is s3_at = 10        [ tmp = 0xc; ]        { export *[const]:4 tmp; }
+s3_r_b4const: tmp is s3_at = 11        [ tmp = 0x10; ]       { export *[const]:4 tmp; }
+s3_r_b4const: tmp is s3_at = 12        [ tmp = 0x20; ]       { export *[const]:4 tmp; }
+s3_r_b4const: tmp is s3_at = 13        [ tmp = 0x40; ]       { export *[const]:4 tmp; }
+s3_r_b4const: tmp is s3_at = 14        [ tmp = 0x80; ]       { export *[const]:4 tmp; }
+s3_r_b4const: tmp is s3_at = 15        [ tmp = 0x100; ]      { export *[const]:4 tmp; }
+
+# B4CONSTU(ar) (Branch Unsigned Immediate) encodings, pg. 42.
+s3_r_b4constu: tmp is s3_at = 0         [ tmp = 0x8000; ] { export *[const]:4 tmp; }
+s3_r_b4constu: tmp is s3_at = 1         [ tmp = 0x1000; ] { export *[const]:4 tmp; }
+s3_r_b4constu: tmp is s3_at = 2         [ tmp = 0x2; ]    { export *[const]:4 tmp; }
+s3_r_b4constu: tmp is s3_at = 3         [ tmp = 0x3; ]    { export *[const]:4 tmp; }
+s3_r_b4constu: tmp is s3_at = 4         [ tmp = 0x4; ]    { export *[const]:4 tmp; }
+s3_r_b4constu: tmp is s3_at = 5         [ tmp = 0x5; ]    { export *[const]:4 tmp; }
+s3_r_b4constu: tmp is s3_at = 6         [ tmp = 0x6; ]    { export *[const]:4 tmp; }
+s3_r_b4constu: tmp is s3_at = 7         [ tmp = 0x7; ]    { export *[const]:4 tmp; }
+s3_r_b4constu: tmp is s3_at = 8         [ tmp = 0x8; ]    { export *[const]:4 tmp; }
+s3_r_b4constu: tmp is s3_at = 9         [ tmp = 0xa; ]    { export *[const]:4 tmp; }
+s3_r_b4constu: tmp is s3_at = 10        [ tmp = 0xc; ]    { export *[const]:4 tmp; }
+s3_r_b4constu: tmp is s3_at = 11        [ tmp = 0x10; ]   { export *[const]:4 tmp; }
+s3_r_b4constu: tmp is s3_at = 12        [ tmp = 0x20; ]   { export *[const]:4 tmp; }
+s3_r_b4constu: tmp is s3_at = 13        [ tmp = 0x40; ]   { export *[const]:4 tmp; }
+s3_r_b4constu: tmp is s3_at = 14        [ tmp = 0x80; ]   { export *[const]:4 tmp; }
+s3_r_b4constu: tmp is s3_at = 15        [ tmp = 0x100; ]  { export *[const]:4 tmp; }
+
+s0_imm8_shift0: tmp is s0_imm8 [
+    tmp = (s0_imm8 & 0xff) << 0;
+] { export *[const]:4 tmp; }
+s0_imm8_shift1: tmp is s0_imm8 [
+    tmp = (s0_imm8 & 0xff) << 1;
+] { export *[const]:4 tmp; }
+s0_imm8_shift2: tmp is s0_imm8 [
+    tmp = (s0_imm8 & 0xff) << 2;
+] { export *[const]:4 tmp; }
+
+srel_s1_imm18: rel is s1_imm18 [
+    rel = inst_start + s1_imm18 + 4;
+] { export *:4 rel; }
+
+srel_s3_imm18: rel is s3_imm18 [
+    rel = inst_start + s3_imm18 + 4;
+] { export *:4 rel; }
+
+s0_srai: tmp is s0_sh_lo & flix_bit20 [
+   tmp = (flix_bit20 << 4) | s0_sh_lo;
+] { export *[const]:1 tmp; }
+
+s0_slli: tmp is s0_imm5_lo & s0_imm5_hi [
+   tmp = 32 - ((s0_imm5_hi << 4) | s0_imm5_lo);
+] { export *[const]:1 tmp; }
+
+s1_slli: tmp is s1_imm5_lo & s1_imm5_hi [
+   tmp = 32 - ((s1_imm5_hi << 4) | s1_imm5_lo);
+] { export *[const]:1 tmp; }
+
+# Signed 12-bit (extended to 16) immediate, used by MOVI.
+s1_imm8: tmp is s1_imm8_lo & s1_imm8_hi [
+   tmp = (s1_imm8_hi << 4) | s1_imm8_lo;
+] { export *[const]:1 tmp; }
+
+# An “asymmetric” immediate from -32..95, used by MOVI.N.
+s2_imm7_asymm: tmp is s2_imm7 [
+    tmp = s2_imm7;
+] { export *[const]:1 tmp; }
+
+s1_srai: tmp is s1_as_imm & s1_imm5_hi [
+   tmp = (s1_imm5_hi << 4) | s1_as_imm;
+] { export *[const]:1 tmp; }
+
+s2_srai: tmp is s2_as_imm & s2_srai_hi [
+   tmp = (s2_srai_hi << 4) | s2_as_imm;
+] { export *[const]:1 tmp; }
+
+# n_u4_4.7 with 0 being -1, used by ADDI.N.
+s2_imm4_nozero: tmp is s2_imm4 = 0  [ tmp = -1;         ] { export *[const]:4 tmp; }
+s2_imm4_nozero: tmp is s2_imm4      [ tmp = s2_imm4+0;] { export *[const]:4 tmp; }
+
 
 attach variables [ sr ] [
 #    0x...0         0x...4      0x...8      0x...c
@@ -199,11 +434,19 @@ attach variables [ sr ] [
 #    0x...0         0x...4      0x...8      0x...c
 ];
 
-attach variables [ ar as at n_ar n_as n_at ] [
+attach variables [ ar as at n_ar n_as n_at Ws0_ar Ws0_as Ws0_at Ws1_ar Ws1_as Ws1_at Ws2_ar Ws2_as Ws2_at Ws3_as Ws3_at ] [
     a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15
 ];
 
-attach variables [ fr fs ft ] [
+# shadow registers for FLIX parallel instructions
+attach variables [ s0_ar s0_as s0_at s1_ar s1_as s1_at s2_ar s2_as s2_at s3_as s3_at ] [
+    s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15
+];
+#attach names [ s0_ar s0_as s0_at s1_ar s1_as s1_at s2_ar s2_as s2_at s3_as s3_at ] [
+#    a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15
+#];
+
+attach variables [ fr fs ft  ] [
     f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15
 ];
 

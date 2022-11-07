@@ -19,5 +19,6 @@
 
 with : phase=1 {
 @include "xtensaInstructions.sinc"
+@include "xtensaFLIX.sinc"
 @include "xtensaTodo.sinc"
 }
